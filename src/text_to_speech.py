@@ -1,32 +1,23 @@
-from TTS.api import TTS
-import numpy as np
-import io
-import soundfile as sf
+from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan
+from datasets import load_dataset
 import torch
+import soundfile as sf
+
+# Load the core components
+processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
+model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
+vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
 
 def synthesize_speech(text):
-    """
-    Synthesize speech from text using Coqui TTS.
-    Returns audio data as bytes (WAV format).
-    """
-    # Determine device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    # Initialize TTS model
-    tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False).to(device)
-    
-    # Generate speech (returns numpy array)
-    audio_array = tts.tts(text=text)
-    
-    # Get sample rate (default to 22050 if not available)
-    sample_rate = getattr(tts.synthesizer, 'output_sample_rate', 22050)
-    if sample_rate is None:
-        sample_rate = 22050
-    
-    # Convert numpy array to WAV bytes
-    buffer = io.BytesIO()
-    sf.write(buffer, audio_array, sample_rate, format='WAV')
-    audio_bytes = buffer.getvalue()
-    
-    return audio_bytes
+    inputs = processor(text=text, return_tensors="pt")
+    # Load a dataset containing pre-calculated X-vectors (speaker embeddings)
+    embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
+
+    # Select a specific speaker (e.g., index 7306 is for the 'slt' female voice)
+    speaker_embeddings = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
+    # Generate the speech waveform
+    speech = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
+
+    return speech
     

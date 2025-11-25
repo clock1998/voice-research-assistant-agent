@@ -6,6 +6,10 @@ import gradio as gr
 import tempfile
 import os
 
+os.environ["SD_ENABLE_ASIO"] = "1"
+import sounddevice as sd
+import numpy as np
+
 app = FastAPI()
 
 @app.post("/chat")
@@ -44,8 +48,15 @@ def chat_interface(audio_file, history):
     history[-1][1] = generated_text
     
     # Synthesize speech
-    audio_bytes = synthesize_speech(generated_text)
-    
+    speech = synthesize_speech(generated_text)
+    audio_data = speech.numpy().astype(np.float32)
+
+    # 2. Play the audio array directly
+    print("Playing audio...")
+    sd.play(audio_data, samplerate=16000)
+
+    # 3. Wait until the audio is finished playing
+    sd.wait()
     # Save to temporary file for Gradio
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
         tmp_file.write(audio_bytes)
