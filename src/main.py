@@ -16,8 +16,8 @@ async def chat_endpoint(file: UploadFile = File(...)):
     print(user_text)
     generated_text = generate_response(user_text)
     print(generated_text)
-    synthesize_speech(generated_text)
-    return FileResponse("zero_shot.wav")
+    response_audio = synthesize_speech(generated_text)
+    return Response(content=response_audio, media_type="audio/wav")
 
 # Gradio interface function
 def chat_interface(audio_file):
@@ -36,10 +36,15 @@ def chat_interface(audio_file):
     print(f"Generated: {generated_text}")
     
     # Synthesize speech
-    synthesize_speech(generated_text)
+    audio_bytes = synthesize_speech(generated_text)
+    
+    # Save to temporary file for Gradio
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
+        tmp_file.write(audio_bytes)
+        tmp_path = tmp_file.name
     
     # Return the audio file path
-    return "zero_shot.wav"
+    return tmp_path
 
 # Create Gradio interface
 demo = gr.Interface(
