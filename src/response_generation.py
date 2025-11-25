@@ -1,9 +1,21 @@
 import torch
 from transformers import pipeline
-
-llm = pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0", device="mps", dtype=torch.float16)      
-
 conversation_history = []
+
+# Auto-detect device
+if torch.cuda.is_available():
+    device = 0  # Use first CUDA device
+elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+    device = "mps"  # Apple Silicon
+else:
+    device = -1  # CPU
+
+llm = pipeline(
+    "text-generation", 
+    model="TinyLlama/TinyLlama-1.1B-Chat-v1.0", 
+    device=device,
+    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+)
 
 def generate_response(user_text):
     conversation_history.append({"role": "user", "text": user_text})

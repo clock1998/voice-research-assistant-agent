@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Response, UploadFile, File
-from fastapi.responses import FileResponse
-from response_generation import generate_response
-from text_to_speech import synthesize_speech
-from transcribe_audio import transcribe_audio
+from src.response_generation import generate_response
+from src.text_to_speech import synthesize_speech
+from src.transcribe_audio import transcribe_audio
 import gradio as gr
 import tempfile
 import os
@@ -20,9 +19,9 @@ async def chat_endpoint(file: UploadFile = File(...)):
     return Response(content=response_audio, media_type="audio/wav")
 
 # Gradio interface function
-def chat_interface(audio_file):
+def chat_interface(audio_file, history):
     if audio_file is None:
-        return None
+        return history, None
     
     # Read the audio file
     with open(audio_file, "rb") as f:
@@ -32,8 +31,17 @@ def chat_interface(audio_file):
     user_text = transcribe_audio(audio_bytes)
     print(f"User said: {user_text}")
     
+    # Add user message to history
+    if history is None:
+        history = []
+    history.append([user_text, None])
+    
+    # Generate response
     generated_text = generate_response(user_text)
     print(f"Generated: {generated_text}")
+    
+    # Update history with assistant response
+    history[-1][1] = generated_text
     
     # Synthesize speech
     audio_bytes = synthesize_speech(generated_text)
@@ -43,17 +51,48 @@ def chat_interface(audio_file):
         tmp_file.write(audio_bytes)
         tmp_path = tmp_file.name
     
-    # Return the audio file path
-    return tmp_path
+    # Return updated history and audio file path
+    return history, tmp_path
 
-# Create Gradio interface
-demo = gr.Interface(
-    fn=chat_interface,
-    inputs=gr.Audio(type="filepath", label="Record or Upload Audio"),
-    outputs=gr.Audio(label="Response Audio"),
-    title="Voice Chat Assistant",
-    description="Upload an audio file to chat with the AI assistant"
-)
+# Create Gradio interface with conversation dialog
+with gr.Blocks(title="Voice Chat Assistant") as demo:
+    gr.Markdown("# Voice Chat Assistant")
+    gr.Markdown("Record your voice or upload an audio file to chat with the AI assistant. Your transcribed text and the AI's response will be displayed in the conversation.")
+    
+    chatbot = gr.Chatbot(
+        label="Conversation",
+        height=400,
+        show_label=True
+    )
+    
+    with gr.Row():
+        audio_input = gr.Audio(
+            sources=["microphone", "upload"],
+            type="filepath",
+            label="Record or Upload Audio",
+            show_label=True
+        )
+        audio_output = gr.Audio(
+            label="Response Audio",
+            show_label=True,
+            autoplay=True
+        )
+    
+    # Clear button
+    clear_btn = gr.Button("Clear Conversation", variant="secondary")
+    
+    # Process audio input
+    audio_input.change(
+        fn=chat_interface,
+        inputs=[audio_input, chatbot],
+        outputs=[chatbot, audio_output]
+    )
+    
+    # Clear conversation
+    clear_btn.click(
+        fn=lambda: ([], None),
+        outputs=[chatbot, audio_output]
+    )
 
 # Mount Gradio on FastAPI
 app = gr.mount_gradio_app(app, demo, path="/gradio")
