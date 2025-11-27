@@ -1,4 +1,5 @@
 absl-py==2.3.1
+accelerate==1.12.0
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.2
@@ -22,7 +23,7 @@ catalogue==2.0.10
 certifi==2025.11.12
 cffi==2.0.0
 charset-normalizer==3.4.4
-click==8.3.1
+click==8.1.8
 cloudpathlib==0.23.0
 coloredlogs==15.0.1
 confection==0.1.5
@@ -38,6 +39,7 @@ decorator==5.2.1
 dill==0.4.0
 dnspython==2.8.0
 docopt==0.6.2
+edge-tts==7.2.3
 einops==0.8.1
 email-validator==2.3.0
 encodec==0.1.1
@@ -65,6 +67,7 @@ gruut-lang-de==2.0.1
 gruut-lang-en==2.0.1
 gruut-lang-es==2.0.1
 gruut-lang-fr==2.0.2
+gTTS==2.5.4
 h11==0.16.0
 hangul-romanize==0.1.0
 hf-xet==1.2.0
@@ -100,7 +103,7 @@ networkx==2.8.8
 nltk==3.9.2
 num2words==0.5.14
 numba==0.62.1
-numpy==1.22.0
+numpy==1.26.4
 nvidia-cublas-cu12==12.8.4.1
 nvidia-cuda-cupti-cu12==12.8.90
 nvidia-cuda-nvrtc-cu12==12.8.93
@@ -170,18 +173,19 @@ starlette==0.50.0
 SudachiDict-core==20251022
 SudachiPy==0.6.10
 sympy==1.14.0
+tabulate==0.9.0
 tensorboard==2.20.0
 tensorboard-data-server==0.7.2
 thinc==8.3.10
 threadpoolctl==3.6.0
-tokenizers==0.19.1
+tokenizers==0.22.1
 tomli==2.3.0
 tomlkit==0.13.3
 torch==2.9.1
 torchaudio==2.9.1
 tqdm==4.67.1
 trainer==0.0.36
-transformers==4.42.3
+transformers==4.57.3
 triton==3.5.1
 typeguard==4.4.4
 typer==0.20.0
