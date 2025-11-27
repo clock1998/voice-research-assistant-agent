@@ -1,23 +1,31 @@
-from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan
-from datasets import load_dataset
-import torch
-import soundfile as sf
+from gtts import gTTS
+import io
+import numpy as np
+import librosa
 
-# Load the core components
-processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
-model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
-vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
-
-def synthesize_speech(text):
+def synthesize_speech(text, lang='en', slow=False):
+    """
+    Synthesize speech from text using Google Text-to-Speech (gTTS).
     
-    inputs = processor(text=text, return_tensors="pt")
-    # Load a dataset containing pre-calculated X-vectors (speaker embeddings)
-    embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
-
-    # Select a specific speaker (e.g., index 7306 is for the 'slt' female voice)
-    speaker_embeddings = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
-    # Generate the speech waveform
-    speech = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
-
-    return speech
+    Args:
+        text: Text to convert to speech
+        lang: Language code (default: 'en')
+        slow: Whether to speak slowly (default: False)
     
+    Returns:
+        numpy array of audio data (float32, 16kHz sample rate)
+    """
+    # Generate speech using gTTS
+    tts = gTTS(text=text, lang=lang, slow=slow)
+    
+    # Save to BytesIO buffer
+    audio_buffer = io.BytesIO()
+    tts.write_to_fp(audio_buffer)
+    audio_buffer.seek(0)
+    
+    # Load MP3 directly using librosa (handles conversion internally)
+    # librosa will resample to sr=16000 by default, or you can specify
+    audio_data, sample_rate = librosa.load(audio_buffer, sr=16000, mono=True)
+    
+    # Convert to float32 numpy array (matching the expected format)
+    return audio_data.astype(np.float32)

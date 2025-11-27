@@ -5,9 +5,7 @@ from src.transcribe_audio import transcribe_audio
 import gradio as gr
 import tempfile
 import os
-
-os.environ["SD_ENABLE_ASIO"] = "1"
-import sounddevice as sd
+import soundfile as sf
 import numpy as np
 
 app = FastAPI()
@@ -35,35 +33,31 @@ def chat_interface(audio_file, history):
     user_text = transcribe_audio(audio_bytes)
     print(f"User said: {user_text}")
     
-    # Add user message to history
+    # Initialize history if None
     if history is None:
         history = []
-    history.append([user_text, None])
+    
+    # Add user message to history (new format with role and content)
+    history.append({"role": "user", "content": user_text})
     
     # Generate response
     generated_text = generate_response(user_text)
     print(f"Generated: {generated_text}")
     
-    # Update history with assistant response
-    history[-1][1] = generated_text
+    # Add assistant response to history (new format)
+    history.append({"role": "assistant", "content": generated_text})
     
     # Synthesize speech
-    speech = synthesize_speech(generated_text)
-    audio_data = speech.numpy().astype(np.float32)
-
-    # 2. Play the audio array directly
-    print("Playing audio...")
-    sd.play(audio_data, samplerate=16000)
-
-    # 3. Wait until the audio is finished playing
-    sd.wait()
-    # Save to temporary file for Gradio
+    audio_data = synthesize_speech(generated_text)
+    
+    # Save synthesized audio to temporary file for Gradio
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_bytes)
-        tmp_path = tmp_file.name
+        sf.write(tmp_file.name, audio_data, samplerate=16000)
+        response_audio_path = tmp_file.name
     
     # Return updated history and audio file path
-    return history, tmp_path
+    # Gradio's audio_output component with autoplay=True will play it in the browser
+    return history, response_audio_path
 
 # Create Gradio interface with conversation dialog
 with gr.Blocks(title="Voice Chat Assistant") as demo:
